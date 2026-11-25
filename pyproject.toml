@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nx2parasolid"
+dynamic = ["version"]
+description = "Extract exact B-rep geometry from Siemens NX .prt files as Parasolid, without NX."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Hat000" }]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["CAD", "NX", "Unigraphics", "Parasolid", "x_t", "x_b", "B-rep", "SolidWorks", "converter", "prt"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+nx2parasolid = "nx2parasolid.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Hat000/nx2parasolid"
+Issues = "https://github.com/Hat000/nx2parasolid/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "nx2parasolid.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nx2parasolid = ["solidworks_combine.ps1", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["UP006", "UP007", "UP035", "UP045", "B008"]

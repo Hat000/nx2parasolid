@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Never commit CAD data or conversion output
+*.prt
+*.x_b
+*.x_t
+*.p_b
+*.d_b
+*.SLDPRT
+*.SLDASM
+*.step
+*.stp
+out/
+output/
