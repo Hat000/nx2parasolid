@@ -1,38 +1,32 @@
 # nx2parasolid
 
-**Get exact solid geometry out of Siemens NX `.prt` files, without NX.**
+**Get exact solid geometry out of Siemens NX `.prt` files without NX.**
 
 [![CI](https://github.com/Hat000/nx2parasolid/actions/workflows/ci.yml/badge.svg)](https://github.com/Hat000/nx2parasolid/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Your NX licence expired. A supplier sent `.prt` files. The team that modelled the car graduated and
-took their NX seats with them. Your CAD system's NX importer doesn't support the NX version the
-files were saved in. And you'd rather not upload your designs to a cloud converter.
-
 `nx2parasolid` reads the part file directly and writes the **exact B-rep** NX stores inside it as
 standard Parasolid (`.x_b` / `.x_t`), which SolidWorks, Solid Edge, NX, Onshape, Fusion and most
-other CAD systems open. Nothing is meshed, re-fitted or approximated: the surfaces, edges and
-tolerances in the output are bit-for-bit the ones NX wrote.
+other CAD systems open. Not a remesh software. The surfaces, edges and
+tolerances in the output are bit-for-bit the ones inside NX.
 
 ```text
 $ nx2parasolid convert parts/ -o converted/
 12:01:04 BRACKET-01: 9 Parasolid streams -> 6 files in bodies/ (6 bodies), 0 faceless skipped
-12:01:04 UPPER-ARM-L: 16 Parasolid streams -> 12 files in bodies/ (19 bodies), 0 faceless skipped
+12:01:04 SOCKET-05: 16 Parasolid streams -> 12 files in bodies/ (19 bodies), 0 faceless skipped
 ...
 12:01:18 done: 36 file(s), 28 with geometry, 0 error(s) -> converted/
 ```
 
-* **Exact.** NX's own Parasolid data, copied byte-for-byte; bodies that NX keeps only inside its
-  partition store are re-packaged node by node without touching a single coordinate.
-* **Offline and private.** Pure Python, no dependencies, no network, no upload. The input file is
-  never written to.
-* **Checks itself.** Every body it writes is decoded again and its topology counted; with the
+* **Exact** NX's own Parasolid data is copied byte-for-byte.
+* **Offline and private** 
+* **Verfication** Every body it writes is decoded again and its topology counted with the
   optional SolidWorks backend every part is merged, checked, re-imported and compared body by
   body.
-* **Honest about what it can't do.** It stops on data that looks encrypted, says which bodies it
-  could not extract and why, and marks every result that needs a human look.
+* **Limitiations** It stops on data that are encrypted, which bodies it
+  could not extract and why, and marks every result that requires review.
 
 ## Install
 
