@@ -60,7 +60,7 @@ nx2parasolid schemas                         # which Parasolid schema files were
 `info` on a single part:
 
 ```text
-UPPER-ARM-L.prt  (1.5 MB, SPLMSSTR container, 14 streams)
+SOCKET-05.prt  (1.5 MB, SPLMSSTR container, 14 streams)
   Parasolid: 4 deltas, 8 part, 4 partition   schema SCH_3801167_38101_13006
   Bodies:    19 with faces (384 faces), 0 construction (no faces)
   Surfaces:  cylinder 198, plane 170, torus 16
@@ -75,7 +75,7 @@ it can't find:
 SUSPENSION-L
   - DAMPER
   - FRONT-L
-    - UPPER-ARM-L
+    - SOCKET-05
       - LINK-STUB-02  [file missing]
       - SPHERICAL-BEARING
 ...
@@ -101,8 +101,8 @@ that part, found by matching them against NX's lightweight display data, merges 
 part, runs SolidWorks Check, exports `<part>.x_t`, re-imports it and compares every body:
 
 ```text
-12:04:20 UPPER-ARM-L: 18 bodies measured, 18 distinct, 17 kept (displayed by NX)
-12:04:50 UPPER-ARM-L: PASS  bodies 17/17, Check faults 0, worst rel. volume 1.5e-08, area 2.9e-10, centre of mass 1.1e-06 mm
+12:04:20 SOCKET-05: 18 bodies measured, 18 distinct, 17 kept (displayed by NX)
+12:04:50 SOCKET-05: PASS  bodies 17/17, Check faults 0, worst rel. volume 1.5e-08, area 2.9e-10, centre of mass 1.1e-06 mm
 ```
 
 A part gets `PASS` when the body count matches, Check reports zero faults, and every body's
