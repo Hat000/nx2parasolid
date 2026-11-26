@@ -154,7 +154,7 @@ list is read.
 
 ## Validation
 
-The tool was developed and tested on a 36-file racing-car suspension assembly saved by NX 2206
+The tool was developed and tested on a 36-file assembly saved by NX 2206
 to NX 2606 (Parasolid v37-v38):
 
 * It found 330 Parasolid streams and decoded all 278 geometry streams to the terminator node.
