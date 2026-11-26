@@ -1,16 +1,21 @@
 # nx2parasolid
 
-**Get exact solid geometry out of Siemens NX `.prt` files without NX.**
+Converts the solid and sheet bodies in Siemens NX `.prt` files to Parasolid, without NX.
 
 [![CI](https://github.com/Hat000/nx2parasolid/actions/workflows/ci.yml/badge.svg)](https://github.com/Hat000/nx2parasolid/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-`nx2parasolid` reads the part file directly and writes the **exact B-rep** NX stores inside it as
-standard Parasolid (`.x_b` / `.x_t`), which SolidWorks, Solid Edge, NX, Onshape, Fusion and most
-other CAD systems open. Not a remesh software. The surfaces, edges and
-tolerances in the output are bit-for-bit the ones inside NX.
+An NX part file stores its geometry as Parasolid data. `nx2parasolid` reads that data from the
+`.prt` and writes it out as standard Parasolid files (`.x_b` / `.x_t`), which SolidWorks, Solid
+Edge, NX, Onshape, Fusion and most other CAD systems can open. The output has the same surfaces,
+edges and tolerances as the NX model, since the tool copies the B-rep instead of meshing it and
+fitting new surfaces.
+
+It is meant for cases where you have NX part files but no NX to export them from, or where your
+CAD system's NX importer doesn't support the NX version the files were saved in. It runs locally,
+so the files are never uploaded anywhere.
 
 ```text
 $ nx2parasolid convert parts/ -o converted/
@@ -20,13 +25,18 @@ $ nx2parasolid convert parts/ -o converted/
 12:01:18 done: 36 file(s), 28 with geometry, 0 error(s) -> converted/
 ```
 
-* **Exact** NX's own Parasolid data is copied byte-for-byte.
-* **Offline and private** 
-* **Verfication** Every body it writes is decoded again and its topology counted with the
-  optional SolidWorks backend every part is merged, checked, re-imported and compared body by
-  body.
-* **Limitiations** It stops on data that are encrypted, which bodies it
-  could not extract and why, and marks every result that requires review.
+What it does:
+
+* Copies the Parasolid part transmits NX stored in the file unchanged. Bodies that NX keeps only
+  in its partition store are written out as separate part files; their field values are copied
+  as decoded, and only the internal node numbering changes.
+* Runs in pure Python with no dependencies and no network access. It never writes to the input
+  file.
+* Decodes every body file it writes a second time and counts its topology. With the optional
+  SolidWorks backend, it also merges each part, runs SolidWorks Check, re-imports the result and
+  compares it body by body.
+* Stops if the model data looks encrypted. It lists any bodies it could not extract, with the
+  reason, and marks results that need a manual check.
 
 ## Install
 
@@ -58,8 +68,8 @@ UPPER-ARM-L.prt  (1.5 MB, SPLMSSTR container, 14 streams)
   Uses:      BRACKET-02, SPHERICAL-BEARING, HEX-NUT, ROD-END
 ```
 
-`tree` on an assembly resolves every child to a `.prt` next to it and tells you what is missing
-*before* you discover it in CAD:
+`tree` on an assembly looks for each child's `.prt` in the assembly's folder and lists the ones
+it can't find:
 
 ```text
 SUSPENSION-L
@@ -85,19 +95,19 @@ For each part, `converted/<part>/` holds:
 
 ### `--solidworks`: one checked file per part (Windows)
 
-With SolidWorks installed, `--solidworks` measures every body, drops exact duplicates (NX keeps
-WAVE-linked copies of bodies from other parts), keeps the bodies **NX itself displays for that
-part** (matched against NX's lightweight display data), merges them into one part, runs
-SolidWorks Check, exports `<part>.x_t`, re-imports it and compares every body:
+With SolidWorks installed, `--solidworks` measures every body and drops exact duplicates (NX
+keeps WAVE-linked copies of bodies from other parts). It then keeps the bodies NX displays for
+that part, found by matching them against NX's lightweight display data, merges them into one
+part, runs SolidWorks Check, exports `<part>.x_t`, re-imports it and compares every body:
 
 ```text
 12:04:20 UPPER-ARM-L: 18 bodies measured, 18 distinct, 17 kept (displayed by NX)
 12:04:50 UPPER-ARM-L: PASS  bodies 17/17, Check faults 0, worst rel. volume 1.5e-08, area 2.9e-10, centre of mass 1.1e-06 mm
 ```
 
-`PASS` needs the same body count, zero Check faults and volume/area within 1e-5 per body.
-Anything else is reported as `CHECK` with the numbers, so you can look. `--all-bodies` keeps
-every distinct body instead of only the displayed ones.
+A part gets `PASS` when the body count matches, Check reports zero faults, and every body's
+volume and area agree within 1e-5. Otherwise it gets `CHECK`, with the numbers printed.
+`--all-bodies` keeps every distinct body instead of only the displayed ones.
 
 ### Python
 
@@ -109,19 +119,19 @@ for f in result.files:
     print(f.file, [b["faces"] for b in f.bodies])
 ```
 
-## The one requirement: Parasolid schema files
+## Parasolid schema files
 
-A Parasolid binary file only records how its layout *differs* from a base schema
-(`sch_13006.s_t` and friends). To decode the bodies NX keeps in its partition store,
-`nx2parasolid` needs those schema files. **They are not included here** - they are part of the
-Parasolid runtime that Parasolid-based CAD systems install, and are found automatically in:
+A Parasolid binary file records only how its layout differs from a base schema
+(`sch_13006.s_t` and similar). `nx2parasolid` needs those schema files to decode the bodies NX
+keeps in its partition store. This repository doesn't include them. They come with the Parasolid
+runtime that Parasolid-based CAD systems install, and the tool looks for them in:
 
 * `--schema-dir DIR` or the `NX2PARASOLID_SCHEMA_DIR` environment variable
 * `P_SCHEMA` (Parasolid's own convention)
 * SolidWorks / eDrawings (`<install>\data\pschema`) and common Parasolid locations
 
-Without them, `nx2parasolid` still copies every part transmit NX stored (often most of the
-geometry) and tells you which bodies it could not extract.
+If no schema files are found, `nx2parasolid` still copies every part transmit NX stored, which is
+often most of the geometry, and lists the bodies it could not extract.
 
 ## How it works
 
@@ -138,56 +148,58 @@ flowchart LR
     F -.-> H
 ```
 
-The details of each layer - the container directory, the transmit encoding, the schema-edit
-codes, how a partition body is turned into a part, and how NX's display list is read - are
-written up in [docs/FORMAT.md](docs/FORMAT.md).
+[docs/FORMAT.md](docs/FORMAT.md) describes each layer: the container directory, the transmit
+encoding, the schema-edit codes, how a partition body is turned into a part, and how NX's display
+list is read.
 
 ## Validation
 
-Developed and validated on a real 36-file racing-car suspension assembly saved by NX 2206 to
-NX 2606 (Parasolid v37-v38):
+The tool was developed and tested on a 36-file racing-car suspension assembly saved by NX 2206
+to NX 2606 (Parasolid v37-v38):
 
-* 330 Parasolid streams found; 278 geometry streams decoded node-by-node to the terminator.
-* 28 parts with geometry -> 254 body files; 24 point/wire construction bodies skipped.
-* Every output loads in SolidWorks with **0 Check faults**. Merged parts: **27 PASS, 1 CHECK**
-  (one bracket's volume drifts 0.11 mm³ / 2.6e-5 in SolidWorks' own `.x_t` round trip; its area
-  matches to 4e-7 and its surface deviation is <= 0.5 µm).
-* Independent geometric check: 8 of the 10 suspension hard points in the design notes lie on
-  bolt-hole and bearing-bore axes of the converted parts to 0.000 mm (the other two point to
-  parts not in the folder, or to a typo in the notes).
+* It found 330 Parasolid streams and decoded all 278 geometry streams to the terminator node.
+* The 28 parts with geometry produced 254 body files. It skipped 24 point/wire construction
+  bodies.
+* Every output loads in SolidWorks with 0 Check faults. Of the merged parts, 27 passed and 1 was
+  marked `CHECK`: one bracket's volume changed by 0.11 mm³ (2.6e-5) in SolidWorks' own `.x_t`
+  round trip, while its area matched to 4e-7 and its surfaces deviated by at most 0.5 µm.
+* 8 of the 10 suspension hard points in the team's design notes lie on bolt-hole and
+  bearing-bore axes of the converted parts to within 0.000 mm. The other two refer to parts that
+  weren't in the folder, or to a typo in the notes.
 
-That is one project. Other NX versions may use encodings this hasn't met yet - see below.
+All of these results come from one project's files. Files from other NX versions may use
+encodings the tool hasn't been tested on (see Limitations).
 
 ## Limitations
 
-* **Parts, not assemblies.** Component placements are stored in NX's own object data, which is
-  not decoded. Parts NX models in assembly coordinates come out in place; standard parts come out
-  in their own frame. `tree` lists the structure (each child once, without quantities).
-* **No feature history.** You get exact solid/sheet bodies (like STEP), not NX features,
-  sketches, PMI or drawings.
-* **Reference sets are not read.** NX can hide stale or linked bodies through reference sets;
-  `--solidworks` keeps what NX displays, which is usually right but not always. Check
+* It converts parts, not assembly placements. NX stores component positions in its own object
+  data, which the tool doesn't decode. Parts modelled in assembly coordinates come out in place;
+  standard parts come out in their own frame. `tree` lists the structure, with each child once
+  and no quantities.
+* The output contains solid and sheet bodies only, as a STEP file would. NX features, sketches,
+  PMI and drawings are not converted.
+* Reference sets are not read. NX can hide stale or linked bodies through reference sets.
+  `--solidworks` keeps what NX displays, which is usually the right set but not always, so check
   `manifest.json`.
-* **Tested on NX 2206-2606.** Older files (e.g. with a tag byte before each zlib stream) are
-  expected to work; anything else is untested. Bug reports welcome.
+* It has been tested on files from NX 2206 to 2606. Older files (for example, with a tag byte
+  before each zlib stream) should work but haven't been tested.
 
 ## Responsible use
 
-* `nx2parasolid` reads data that NX stores **unencrypted**. It does not bypass licensing,
-  encryption or any protection measure, and it stops if the model data is not plain zlib.
+* `nx2parasolid` reads data that NX stores unencrypted. It does not bypass licensing, encryption
+  or any other protection, and it stops if the model data is not plain zlib.
 * Use it only on files you have the right to use, and respect the terms under which they were
   created (for example, NX Student Edition data is licensed for educational use).
-* The Parasolid binary layout is documented by Siemens in the public *Parasolid XT Format
-  Reference*; this project implements a reader and writer for it for interoperability. It ships
-  no Siemens code or data. Parasolid, NX and Siemens are trademarks of Siemens Industry
-  Software; SolidWorks is a trademark of Dassault Systèmes. This project is not affiliated with
-  either.
+* Siemens documents the Parasolid binary layout in the public *Parasolid XT Format Reference*.
+  This project implements a reader and writer for it for interoperability and ships no Siemens
+  code or data. Parasolid, NX and Siemens are trademarks of Siemens Industry Software; SolidWorks
+  is a trademark of Dassault Systèmes. This project is not affiliated with either.
 
 ## Contributing
 
-Issues and pull requests are welcome - especially reports from NX versions other than 2206-2606.
-**Please don't attach CAD files you aren't free to share.** The output of
-`nx2parasolid info --json your.prt` plus the full error message is usually enough to start.
+Issues and pull requests are welcome, especially reports from NX versions other than 2206-2606.
+Please don't attach CAD files you aren't free to share. The output of
+`nx2parasolid info --json your.prt` and the full error message are usually enough to start with.
 
 ```bash
 git clone https://github.com/Hat000/nx2parasolid && cd nx2parasolid
